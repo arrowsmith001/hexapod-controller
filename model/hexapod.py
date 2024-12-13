@@ -1,18 +1,23 @@
 from utils.servo import *
 
 class HexapodLegJoint:
-    def __init__(self, ports, initial_angle=0, angle_offset=0):
+    def __init__(self, ports, angle_offset=0, initial_angle=0, invert=False):
         self.pwm = i2c[ports[0]]
         self.channel = ports[1]
+        self.invert = invert
         self.angle_offset = angle_offset
-        self.set_angle(initial_angle)
-        
+        self.initial_angle = initial_angle
+    
+    def set_to_initial_angle(self):
+        self.set_angle(self.initial_angle)
+
     def set_angle(self, angle):
+        self.angle = angle
+        angle = -angle if self.invert else angle
         angle = max(-90, min(90, angle))
         adjusted_angle = angle + self.angle_offset
         pulse = int(servoMid + (adjusted_angle / 90) * pulseInterval)
         self.pwm.setPWM(self.channel, 0, pulse)
-        self.angle = angle
         
     def get_angle(self):
         return self.angle
@@ -22,8 +27,14 @@ class HexapodLegJoint:
     angle = 0
 
 class HexapodLeg:
-    def __init__(self, joint0, joint1, joint2):
+    def __init__(self, origin, heading, joint0, joint1, joint2):
+        self.origin = origin
+        self.heading = heading
         self.joints = [joint0, joint1, joint2]
+
+    def set_initial_angles(self):
+        for i in range(3):
+            self.joints[i].set_to_initial_angle()
         
     def set_angles(self, angles):
         for i in range(3):
@@ -45,3 +56,9 @@ class Hexapod:
         self.right_front_leg = right_front_leg
         self.right_mid_leg = right_mid_leg
         self.right_back_leg = right_back_leg
+        if left_front_leg is not None: left_front_leg.set_initial_angles()
+        if left_mid_leg is not None: left_mid_leg.set_initial_angles()
+        if left_back_leg is not None: left_back_leg.set_initial_angles()
+        if right_front_leg is not None: right_front_leg.set_initial_angles()
+        if right_mid_leg is not None: right_mid_leg.set_initial_angles()
+        if right_back_leg is not None: right_back_leg.set_initial_angles()
