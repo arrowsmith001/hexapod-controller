@@ -1,4 +1,6 @@
+import math
 from utils.servo import *
+from config import *
 
 class HexapodLegJoint:
     def __init__(self, ports, angle_offset=0, initial_angle=0, invert=False):
@@ -26,11 +28,18 @@ class HexapodLegJoint:
     angle_offset = 0
     angle = 0
 
+def calculate_foot_rest_position(origin, heading):
+    x = origin[0] + femur_len * math.cos(math.radians(heading))
+    y = origin[1] + femur_len * math.sin(math.radians(heading))
+    z = origin[2] - tibia_len
+    return [x, y, z]
+
 class HexapodLeg:
     def __init__(self, origin, heading, joint0, joint1, joint2):
         self.origin = origin
         self.heading = heading
         self.joints = [joint0, joint1, joint2]
+        self.foot_rest_position = calculate_foot_rest_position(self.origin, self.heading)
 
     def set_initial_angles(self):
         for i in range(3):

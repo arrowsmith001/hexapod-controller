@@ -1,10 +1,14 @@
 from model.hexapod import *
+import math
+
+from model.hexapod import HexapodLeg
 
 # Lengths of the leg segments in mm
 
-coxa_len = 34.124
-femur_len = 48.325
-tibia_len = 72.652
+coxa_len = 24.6
+coxa_elevation = 14
+femur_len = 47.5
+tibia_len = 70.3
 
 # I use a 32-channel Pi Hat which uses 2 different I2C addresses each with up to 16 PWM channels: 
 #   - 0-1 for the PWM channel
@@ -35,8 +39,8 @@ right_front_leg = HexapodLeg([], 0,
     HexapodLegJoint(right_front_ports[2], invert=True))
 
 right_back_leg = HexapodLeg([39.435, -61.125, -21.970], 135,
-    HexapodLegJoint(right_back_ports[0], invert=True, angle_offset=5), 
-    HexapodLegJoint(right_back_ports[1], invert=True), 
+    HexapodLegJoint(right_back_ports[0], invert=False, angle_offset=4), 
+    HexapodLegJoint(right_back_ports[1], invert=False), 
     HexapodLegJoint(right_back_ports[2], invert=True, angle_offset=15))
 
 # left_mid_leg = HexapodLeg(
