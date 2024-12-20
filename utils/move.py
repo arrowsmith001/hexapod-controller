@@ -1,10 +1,9 @@
-
 import math
 import time
-
-from model.hexapod import *
-from config import *
+from constants import coxa_len, femur_len, tibia_len
 from numpy import rad2deg
+
+from model.hexapod import HexapodLegJoint, HexapodLeg
 
 
 def move_joint_linear(joint : HexapodLegJoint, target_angle, seconds, dt=0.01):

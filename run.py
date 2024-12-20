@@ -1,11 +1,9 @@
-from model.hexapod import *
+import numpy as np
 from utils.ik import trajectory_as_angles
 from utils.move import *
 from utils.servo import *
-from config import *
+from config import right_back_leg
 import time
-import math
-import numpy as np
 
 #kill_servos()
 
@@ -19,10 +17,11 @@ def move():
     for movement in movements:
         movement_vector = movement[0]
         ms = movement[1]
-        target = position + movement_vector
+        target = np.array(position) + np.array(movement_vector)
         angles = trajectory_as_angles(position, target, ms, leg.heading)
         dt = 0.025
         steps = int(ms / dt)
+        print('angles: ' + str(len(angles)), 'by', str(len(angles[0])))
         for i in range(steps):
             right_back_leg.set_angles(angles[i])
             time.sleep(dt)
@@ -31,9 +30,27 @@ def move():
 
 while True:
     print('loop')
-
-    add_move([0, 0, 50], 250)
-    add_move([0, 100, 50], 250)
-    add_move([0, 100, 0], 250)
-    add_move([0, 0, 0], 250)
-    move()
+    
+    move_joint_linear(HexapodLegJoint([1, 11]), 90, 1)    
+    time.sleep(1)
+    move_joint_linear(HexapodLegJoint([1, 11]), 0, 1)    
+    time.sleep(1)
+    
+    # right_back_leg.set_angles([0, 0, 0])
+    
+    # start_pos = right_back_leg.foot_rest_position
+    # movement_vector = np.array([200, 200, 200])
+    
+    # target = start_pos + movement_vector
+    # duration = 2000
+    # dt = 10
+    # steps = int(duration / dt)
+    # print('steps: ' + str(steps))
+    
+    # angles = trajectory_as_angles(start_pos, target, steps, 135)
+    # # print(str(angles))
+    # print('angles: ' + str(len(angles)), 'by', str(len(angles[0])))
+    # for i in range(steps):
+    #     right_back_leg.set_angles(angles[i])
+    #     time.sleep(dt / 1000)
+    

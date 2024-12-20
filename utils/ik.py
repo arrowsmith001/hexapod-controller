@@ -1,7 +1,6 @@
-from model.hexapod import *
 from utils.move import *
 from utils.servo import *
-from config import *
+from constants import *
 import math
 import numpy as np
 
@@ -26,6 +25,7 @@ def trajectory_as_angles(start, end, steps, leg_rest_heading):
         target = start + (i / steps) * (end - start)
         angles = leg_ik(target, leg_rest_heading)
         trajectory.append(angles)
+        print('angle 1', angles[0], 'angle 2', angles[1], 'angle 3', angles[2])
     return trajectory
 
 # Given a target position in world space, and the rest heading of the leg, calculate the angles 
@@ -67,9 +67,8 @@ def leg_ik(target_pos, leg_rest_heading):
 
 
 def clamp_angle(lower, upper, angle):
-    while angle < lower or angle > upper:
-        if angle < lower:
-            angle += 360
-        if angle > upper:
-            angle -= 360
+    if angle < lower:
+        return lower
+    if angle > upper:
+        return upper
     return angle
