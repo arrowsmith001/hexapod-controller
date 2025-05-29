@@ -1,74 +1,122 @@
 import math
+from enum import Enum
+import numpy as np
+from leg_position import LegPosition
+from model.hexapod_leg import HexapodLeg
+from model.hexapod_leg_joint import HexapodLegJoint
+from motion import BezierMotion, Gait, LinearMotion, Motion
+from servo_drivers.abstract import ServoDriver
 from utils.servo import *
 from constants import *
-
-class HexapodLegJoint:
-    def __init__(self, ports, angle_offset=0, initial_angle=0, invert=False):
-        self.pwm = i2c[ports[0]]
-        self.channel = ports[1]
-        self.invert = invert
-        self.angle_offset = angle_offset
-        self.initial_angle = initial_angle
+from utils.ik import trajectory_as_angles
     
-    def set_to_initial_angle(self):
-        self.set_angle(self.initial_angle)
-
-    def set_angle(self, angle):
-        self.angle = angle
-        angle = -angle if self.invert else angle
-        angle = max(-90, min(90, angle))
-        adjusted_angle = angle + self.angle_offset
-        pulse = int(servoMid + (adjusted_angle / 90) * pulseInterval)
-        self.pwm.setPWM(self.channel, 0, pulse)
-        
-    def get_angle(self):
-        return self.angle
-    
-    pwm : PWM = None
-    angle_offset = 0
-    angle = 0
-
-def calculate_foot_rest_position(origin, heading):
-    if origin is None: return None
-    return [71.6,-71.74,-61.5]
-    return [x, y, z]
-
-class HexapodLeg:
-    def __init__(self, origin, heading, joint0, joint1, joint2):
-        self.origin = origin
-        self.heading = heading
-        self.joints = [joint0, joint1, joint2]
-        self.foot_rest_position = calculate_foot_rest_position(self.origin, self.heading)
-        print('foot rest position: ' + str(self.foot_rest_position))
-        
-
-    def set_initial_angles(self):
-        for i in range(3):
-            self.joints[i].set_to_initial_angle()
-        
-    def set_angles(self, angles):
-        for i in range(3):
-            self.joints[i].set_angle(angles[i])
-        
-    def get_angles(self):
-        angles = []
-        for i in range(3):
-            angles.append(self.joints[i].get_angle())
-        return angles
-    
-    joints = []
 
 class Hexapod:
-    def __init__(self, left_front_leg, left_mid_leg, left_back_leg, right_front_leg, right_mid_leg, right_back_leg):
-        self.left_front_leg = left_front_leg
-        self.left_mid_leg = left_mid_leg
-        self.left_back_leg = left_back_leg
-        self.right_front_leg = right_front_leg
-        self.right_mid_leg = right_mid_leg
-        self.right_back_leg = right_back_leg
-        if left_front_leg is not None: left_front_leg.set_initial_angles()
-        if left_mid_leg is not None: left_mid_leg.set_initial_angles()
-        if left_back_leg is not None: left_back_leg.set_initial_angles()
-        if right_front_leg is not None: right_front_leg.set_initial_angles()
-        if right_mid_leg is not None: right_mid_leg.set_initial_angles()
-        if right_back_leg is not None: right_back_leg.set_initial_angles()
+
+    def __init__(self, legs : list[HexapodLeg]):
+        # For each leg, its position is deduced. 
+        # The hexapods surrounding area is divided into 6 equal sections. Then the angle is read to determine the leg's position.
+        self.legs: list[HexapodLeg | None] = [None] * 6
+        for i in range(len(legs)):
+            leg: HexapodLeg = legs[i]
+            heading = leg.heading
+            position = None or LegPosition
+            if heading > -180 and heading < 0:
+                # Left side legs
+                if heading < -120:
+                    position = LegPosition.LEFT_BACK
+                elif heading < -60:
+                    position = LegPosition.LEFT_MID
+                else:
+                    position = LegPosition.LEFT_FRONT
+            elif heading >= 0 and heading < 180:
+                # Right side legs
+                if heading < 60:
+                    position = LegPosition.RIGHT_FRONT
+                elif heading < 120:
+                    position = LegPosition.RIGHT_MID
+                else:
+                    position = LegPosition.RIGHT_BACK
+            else:
+                raise ValueError("Invalid leg heading: " + str(heading))
+            if self.legs[position.value] is not None:
+                conflicting_leg = self.legs[position.value]
+                conflict_heading = conflicting_leg.heading if conflicting_leg is not None else None
+                raise ValueError("Duplicate leg heading: " + str(heading) + " conflicts with " + str(conflict_heading))
+            self.legs[position.value] = leg
+            leg.set_initial_angles()
+            
+    def set_gait(self, gait: Gait):
+        self.gait = gait
+            
+    def get_leg(self, position: LegPosition):
+        if position.value < 0 or position.value >= len(self.legs):
+            raise ValueError("Invalid leg position")
+        return self.legs[position.value]
+    
+    def compute_joint_angles(self, delta=0.5):
+        print("Computing joint angles for gait with duration:", self.gait.duration)
+        if not hasattr(self, 'gait'):
+            raise ValueError("Gait not set")
+        
+        self.angles = []
+        
+        # Pre-fill array with zeroes
+        for i in range(int(self.gait.duration / delta) + 1):
+            self.angles.append([[0,0,0]] * 6)
+            
+        # One leg at a time in time order (since the absolute position needs to be calculated)
+        for i in range(len(self.legs)):
+            leg = self.legs[i]
+            if leg is None:
+                continue
+            
+            ordered_leg_motions: list[Motion] = self.gait.get_leg_motions_in_time_order(LegPosition(i))
+            
+            # Start with the initial angles for this leg
+            initial_angles = leg.get_angles()
+            steps = int(self.gait.duration / delta) + 1
+            leg_angles = [initial_angles]
+            current_pos = leg.get_foot_position()
+
+            # Build the full trajectory for this leg by stitching together all motions
+            current_time = 0.0
+            for motion in ordered_leg_motions:
+                # Determine start and end time for this motion
+                start_time = max(current_time, motion.start)
+                end_time = min(self.gait.duration, motion.duration + motion.start)
+                steps = int((end_time - start_time) / delta)
+                if steps <= 0:
+                    continue
+                # Calculate target position
+                target_pos = np.array(current_pos) + np.array(motion.vector)
+                traj = trajectory_as_angles(current_pos, target_pos, steps, leg.heading, motion.control_point if isinstance(motion, BezierMotion) else None)
+                leg_angles.extend(traj[1:])  # skip the first, already included
+                current_time = end_time
+
+            # If the trajectory is shorter than the total time, pad with last known angles
+            while len(leg_angles) < steps:
+                leg_angles.append(leg_angles[-1])
+
+            # Assign the computed angles to the main angles array
+            for idx in range(steps):
+                self.angles[idx][i] = leg_angles[idx]
+                
+        print("Computed joint angles for " + str(len(self.angles)) + " steps.")
+            
+    def set_angles_at(self, time: float):
+        if not hasattr(self, 'angles'):
+            raise ValueError("Angles not computed. Call compute_joint_angles() first.")
+        
+        if time < 0 or time >= self.gait.duration:
+            time = time % self.gait.duration  # Wrap around if time exceeds duration
+        
+        # Calculate the index in the angles array
+        index = int(time / (self.gait.duration / len(self.angles)))
+        angles = self.angles[index]
+        
+        # Set angles for each leg
+        for i in range(len(self.legs)):
+            leg = self.legs[i]
+            if leg is not None:
+                leg.set_angles(angles[i])

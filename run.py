@@ -1,56 +1,32 @@
-import numpy as np
-from utils.ik import trajectory_as_angles
-from utils.move import *
-from utils.servo import *
-from config import right_back_leg
+from motion import Gait, LinearMotion
+from config import *
+from leg_position import LegPosition
 import time
 
-#kill_servos()
+# A gait is defined by a set of movements, each with either a LinearMotion or BezierMotion, and a start and end time
+wave_gait = Gait([
+    LinearMotion([0, 30, 0], 0, 1000, LegPosition.LEFT_FRONT),
+    LinearMotion([0, -30, 0], 1000, 1000, LegPosition.LEFT_MID),
+    LinearMotion([0, 30, 0], 2000, 1000, LegPosition.LEFT_BACK),
+    LinearMotion([0, -30, 0], 3000, 1000, LegPosition.RIGHT_FRONT),
+    LinearMotion([0, 30, 0], 4000, 1000, LegPosition.RIGHT_MID),
+    LinearMotion([0, -30, 0], 5000, 1000, LegPosition.RIGHT_BACK)
+])
 
-movements = []
-def add_move(movement_vector, ms):
-    movements.append([movement_vector, ms])
+# Give the hexapod a gait
+hexapod.set_gait(wave_gait)
 
-def move():
-    leg = right_back_leg
-    position = leg.foot_rest_position
-    for movement in movements:
-        movement_vector = movement[0]
-        ms = movement[1]
-        target = np.array(position) + np.array(movement_vector)
-        angles = trajectory_as_angles(position, target, ms, leg.heading)
-        dt = 0.025
-        steps = int(ms / dt)
-        print('angles: ' + str(len(angles)), 'by', str(len(angles[0])))
-        for i in range(steps):
-            right_back_leg.set_angles(angles[i])
-            time.sleep(dt)
-        position = target
-        
+# Generate the leg angles for the gait, granularity specified by delta
+hexapod.compute_joint_angles(delta=0.01)
 
 while True:
     print('loop')
     
-    move_joint_linear(HexapodLegJoint([1, 11]), 90, 1)    
-    time.sleep(1)
-    move_joint_linear(HexapodLegJoint([1, 11]), 0, 1)    
-    time.sleep(1)
+    t = 0
+    dt = 0.025
     
-    # right_back_leg.set_angles([0, 0, 0])
-    
-    # start_pos = right_back_leg.foot_rest_position
-    # movement_vector = np.array([200, 200, 200])
-    
-    # target = start_pos + movement_vector
-    # duration = 2000
-    # dt = 10
-    # steps = int(duration / dt)
-    # print('steps: ' + str(steps))
-    
-    # angles = trajectory_as_angles(start_pos, target, steps, 135)
-    # # print(str(angles))
-    # print('angles: ' + str(len(angles)), 'by', str(len(angles[0])))
-    # for i in range(steps):
-    #     right_back_leg.set_angles(angles[i])
-    #     time.sleep(dt / 1000)
-    
+    # Keep incrementing time by dt, and set the angles for the hexapod at each time
+    while t < hexapod.gait.duration:
+        hexapod.set_angles_at(t)
+        t += dt
+        time.sleep(dt)

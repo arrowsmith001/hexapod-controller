@@ -19,17 +19,25 @@ def cosine_rule_from_sides(adjacent_sides, opposite_side):
 
 # Given a start and end point in 3D space, for each point between them calculate the required 
 #   angles to reach that point, and return as an array
-def trajectory_as_angles(start, end, steps, leg_rest_heading):
+def trajectory_as_angles(start, end, steps, leg_rest_heading, control_point=None):
     trajectory = []
+    start = np.array(start)
+    end = np.array(end)
+    if control_point is not None:
+        control_point = np.array(control_point)
     for i in range(steps):
-        target = start + (i / steps) * (end - start)
+        t = i / (steps - 1) if steps > 1 else 0
+        if control_point is not None:
+            # Quadratic Bezier
+            target = ((1 - t) ** 2) * start + (2 * (1 - t) * t) * control_point + (t ** 2) * end
+        else:
+            # Linear interpolation
+            target = start + t * (end - start)
         angles = leg_ik(target, leg_rest_heading)
         trajectory.append(angles)
-        print('angle 1', angles[0], 'angle 2', angles[1], 'angle 3', angles[2])
     return trajectory
 
-# Given a target position in world space, and the rest heading of the leg, calculate the angles 
-#   required to reach that position
+# Given a target position in world space, and the rest heading of the leg, calculate the angles required to reach that position
 def leg_ik(target_pos, leg_rest_heading):
     
     # Normalize target position to leg space by removing the leg rest heading
