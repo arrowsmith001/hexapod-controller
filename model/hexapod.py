@@ -1,108 +1,134 @@
 import math
 from enum import Enum
 import numpy as np
-from leg_position import LegPosition
+from hexapod.leg_position import LegType
 from model.hexapod_leg import HexapodLeg
 from model.hexapod_leg_joint import HexapodLegJoint
-from motion import BezierMotion, Gait, LinearMotion, Motion
+from hexapod.motion import BezierMotion, Gait, LinearMotion, Motion
 from servo_drivers.abstract import ServoDriver
 from utils.servo import *
-from constants import *
-from utils.ik import trajectory_as_angles
+from hexapod.constants import *
+from utils.ik import trajectory_as_angles, leg_ik
     
 
 class Hexapod:
 
     def __init__(self, legs : list[HexapodLeg]):
-        # For each leg, its position is deduced. 
+        # For each leg, its type is deduced. 
         # The hexapods surrounding area is divided into 6 equal sections. Then the angle is read to determine the leg's position.
         self.legs: list[HexapodLeg | None] = [None] * 6
         for i in range(len(legs)):
             leg: HexapodLeg = legs[i]
-            heading = leg.heading
-            position = None or LegPosition
-            if heading > -180 and heading < 0:
+            leg_heading = leg.joint_rest_headings[0]
+            type = None or LegType
+            if leg_heading > -180 and leg_heading < 0:
                 # Left side legs
-                if heading < -120:
-                    position = LegPosition.LEFT_BACK
-                elif heading < -60:
-                    position = LegPosition.LEFT_MID
+                if leg_heading < -120:
+                    type = LegType.LEFT_BACK
+                elif leg_heading < -60:
+                    type = LegType.LEFT_MID
                 else:
-                    position = LegPosition.LEFT_FRONT
-            elif heading >= 0 and heading < 180:
+                    type = LegType.LEFT_FRONT
+            elif leg_heading >= 0 and leg_heading < 180:
                 # Right side legs
-                if heading < 60:
-                    position = LegPosition.RIGHT_FRONT
-                elif heading < 120:
-                    position = LegPosition.RIGHT_MID
+                if leg_heading < 60:
+                    type = LegType.RIGHT_FRONT
+                elif leg_heading < 120:
+                    type = LegType.RIGHT_MID
                 else:
-                    position = LegPosition.RIGHT_BACK
+                    type = LegType.RIGHT_BACK
             else:
-                raise ValueError("Invalid leg heading: " + str(heading))
-            if self.legs[position.value] is not None:
-                conflicting_leg = self.legs[position.value]
-                conflict_heading = conflicting_leg.heading if conflicting_leg is not None else None
-                raise ValueError("Duplicate leg heading: " + str(heading) + " conflicts with " + str(conflict_heading))
-            self.legs[position.value] = leg
-            leg.set_initial_angles()
+                raise ValueError("Invalid leg heading: " + str(leg_heading))
+            if self.legs[type.value] is not None:
+                conflicting_leg = self.legs[type.value]
+                conflict_heading = conflicting_leg.leg_heading if conflicting_leg is not None else None
+                raise ValueError("Duplicate leg heading: " + str(leg_heading) + " conflicts with " + str(conflict_heading))
+            self.legs[type.value] = leg
             
     def set_gait(self, gait: Gait):
         self.gait = gait
             
-    def get_leg(self, position: LegPosition):
+    def get_leg(self, position: LegType):
         if position.value < 0 or position.value >= len(self.legs):
             raise ValueError("Invalid leg position")
-        return self.legs[position.value]
+        leg = self.legs[position.value]
+        if leg is None:
+            raise ValueError("Leg at position " + position.name + " is not set")
+        return leg
     
     def compute_joint_angles(self, delta=0.5):
-        print("Computing joint angles for gait with duration:", self.gait.duration)
+        
+        if self.gait.duration <= 0:
+            raise ValueError("Gait duration must be greater than 0")
+        
+        total_steps = int(self.gait.duration / delta)
+        
         if not hasattr(self, 'gait'):
             raise ValueError("Gait not set")
         
-        self.angles = []
-        
-        # Pre-fill array with zeroes
-        for i in range(int(self.gait.duration / delta) + 1):
-            self.angles.append([[0,0,0]] * 6)
-            
+        angles = np.empty([total_steps, len(self.legs), 3], dtype=float)
+    
         # One leg at a time in time order (since the absolute position needs to be calculated)
         for i in range(len(self.legs)):
             leg = self.legs[i]
             if leg is None:
                 continue
             
-            ordered_leg_motions: list[Motion] = self.gait.get_leg_motions_in_time_order(LegPosition(i))
-            
             # Start with the initial angles for this leg
-            initial_angles = leg.get_angles()
-            steps = int(self.gait.duration / delta) + 1
-            leg_angles = [initial_angles]
-            current_pos = leg.get_foot_position()
-
-            # Build the full trajectory for this leg by stitching together all motions
-            current_time = 0.0
-            for motion in ordered_leg_motions:
-                # Determine start and end time for this motion
-                start_time = max(current_time, motion.start)
-                end_time = min(self.gait.duration, motion.duration + motion.start)
-                steps = int((end_time - start_time) / delta)
-                if steps <= 0:
-                    continue
-                # Calculate target position
-                target_pos = np.array(current_pos) + np.array(motion.vector)
-                traj = trajectory_as_angles(current_pos, target_pos, steps, leg.heading, motion.control_point if isinstance(motion, BezierMotion) else None)
-                leg_angles.extend(traj[1:])  # skip the first, already included
-                current_time = end_time
-
-            # If the trajectory is shorter than the total time, pad with last known angles
-            while len(leg_angles) < steps:
-                leg_angles.append(leg_angles[-1])
-
-            # Assign the computed angles to the main angles array
-            for idx in range(steps):
-                self.angles[idx][i] = leg_angles[idx]
+            leg_type = LegType(i)
+            leg_origin = leg.origin
+            
+            # Get motion count for this leg
+            motion_count = self.gait.get_leg_motion_count(leg_type)
+            
+            current_angles = leg.starting_angles
+            current_reference_pos = leg.get_foot_position_at_angles(current_angles)
+            current_time = 0
+            
+            #print('Starting angles: ', current_angles, 'for leg:', leg_type.name)
+            #print('Starting reference position:', current_reference_pos, 'for leg:', leg_type.name)
+            #print('leg_ik check:', leg_ik(current_reference_pos - leg_origin, leg.joint_rest_headings), 'for leg: ', leg_type.name)
+            
+            for i in range(total_steps):
                 
-        print("Computed joint angles for " + str(len(self.angles)) + " steps.")
+                if motion_count == 0:
+                    # No motions for this leg, just use the initial angles
+                    angles[i, leg_type.value, :] = leg.starting_angles
+                    continue
+                
+                current_time = i * delta
+                current_motion = self.gait.get_leg_motion_at_time(leg_type, current_time)
+                
+                if current_motion is None:
+                    # No motion at this time, use the last known angles
+                    angles[i, leg_type.value, :] = current_angles
+                    ###print('No motion at time:', current_time, 'using last known angles:', current_angles, 'for leg:', leg_type.name)
+                    continue
+                
+                # Calculate target position
+                pos = current_motion.interp(current_reference_pos - leg_origin, current_time)
+                
+                # Calculate the angles for this position
+                _angles = leg_ik(pos, leg.joint_rest_headings)  
+                
+                #print('i :', i, '_angles:', _angles, 'current_time:', current_time, 'pos + origin check:', pos + leg_origin)
+                # Set angles
+                angles[i, leg_type.value, :] = _angles
+                
+                current_angles = _angles
+                
+                # If motion is at its end, update reference position
+                motion_end = current_motion.start + current_motion.duration
+                #print('current_time:', current_time, 'motion_end:', motion_end)
+                if current_time + delta >= motion_end:
+                    current_reference_pos = pos + leg_origin
+        
+        for j in range(total_steps):
+            leg = self.get_leg(LegType.LEFT_BACK)
+            #print(f'{j}: {angles[j, LegType.LEFT_BACK.value, :]}')
+                    
+        self.angles = angles
+        
             
     def set_angles_at(self, time: float):
         if not hasattr(self, 'angles'):
@@ -115,8 +141,11 @@ class Hexapod:
         index = int(time / (self.gait.duration / len(self.angles)))
         angles = self.angles[index]
         
+        ###print('Angles at time {:.2f}: {}'.format(time, angles))
+        
         # Set angles for each leg
         for i in range(len(self.legs)):
             leg = self.legs[i]
             if leg is not None:
+                # print(f'Setting angles for leg {i} at time {time:.2f}: {angles[i]}')
                 leg.set_angles(angles[i])

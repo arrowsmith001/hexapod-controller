@@ -1,6 +1,6 @@
 from utils.move import *
 from utils.servo import *
-from constants import *
+from hexapod.constants import *
 import math
 import numpy as np
 
@@ -15,12 +15,14 @@ def get_rot_mat_3d(angle):
 def cosine_rule_from_sides(adjacent_sides, opposite_side):
     a, b = adjacent_sides
     c = opposite_side
-    return math.acos((a**2 + b**2 - c**2) / (2 * a * b))
+    arg = (a**2 + b**2 - c**2) / (2 * a * b)
+    arg = max(-1, min(1, arg))
+    return math.acos(arg)
 
 # Given a start and end point in 3D space, for each point between them calculate the required 
 #   angles to reach that point, and return as an array
-def trajectory_as_angles(start, end, steps, leg_rest_heading, control_point=None):
-    trajectory = []
+def trajectory_as_angles(start, end, steps, rest_headings, control_point=None):
+    trajectory = np.empty((steps, 3), dtype=float)
     start = np.array(start)
     end = np.array(end)
     if control_point is not None:
@@ -33,45 +35,63 @@ def trajectory_as_angles(start, end, steps, leg_rest_heading, control_point=None
         else:
             # Linear interpolation
             target = start + t * (end - start)
-        angles = leg_ik(target, leg_rest_heading)
-        trajectory.append(angles)
+        angles = leg_ik(target, rest_headings)
+        
+        #print(f"Step {i}: Target Position: {target}, Angles: {angles}")
+        trajectory[i] = angles
     return trajectory
 
-# Given a target position in world space, and the rest heading of the leg, calculate the angles required to reach that position
-def leg_ik(target_pos, leg_rest_heading):
+# Given a target position in local leg space, and the rest headings of the leg joints, calculate the angles required to reach that position
+def leg_ik(target_pos, rest_headings):
+    
+    # print('Target position:', target_pos)
+    
+    # Unpack the rest headings
+    leg_rest_heading = rest_headings[0]
+    femur_rest_heading = rest_headings[1]
+    tibia_rest_heading = rest_headings[2]
     
     # Normalize target position to leg space by removing the leg rest heading
-    targ_norm_1 = get_rot_mat_3d(-leg_rest_heading).dot(target_pos)
+    targ_norm_1 = get_rot_mat_3d(-leg_rest_heading).dot(target_pos)   
     
-    theta_0 = math.atan2(targ_norm_1[0], targ_norm_1[1])
+    theta_0 = -math.atan2(-targ_norm_1[0], targ_norm_1[1])
     
     # Normalize target position again by removing the theta_0 angle.
     # This allows us to work with the remaining joints in the y-z plane.
-    targ_norm_2 = get_rot_mat_3d(-rad2deg(theta_0)).dot(targ_norm_1)
+    # targ_norm_2[0] should always be 0 or very close to 0.
+    targ_norm_2 = get_rot_mat_3d(rad2deg(-theta_0)).dot(targ_norm_1)
+    
+    #print('targ_norm_2:', targ_norm_2)
     
     # Calculate the distance from the end of the coxa to the target position
-    d_vec = targ_norm_2 - np.array([0, coxa_len, coxa_elevation]) # Remove coxa offset from hip
+    # Remove coxa offset from hip. Now we are only dealing with the femur and tibia.
+    d_vec = targ_norm_2 - np.array([0, coxa_len, coxa_elevation]) 
     d = np.linalg.norm(d_vec)
     
-    j1_rest_heading = 15 # in y-z plane TODO: Should be refactored to leg config
-    j2_rest_heading = 49 # in y-z plane TODO: Should be refactored to leg config
+    #print('d: ', d, 'd_vec:', d_vec)
 
     # If target is unreachable, just move the leg as far as possible pointed at target
     if(d > femur_len + tibia_len):
-        theta_1 = math.atan2(-d_vec[2], d_vec[1]) - np.deg2rad(j1_rest_heading)
-        theta_2 = -np.deg2rad(j2_rest_heading)
+        theta_1 = math.atan2(-d_vec[2], d_vec[1]) - np.deg2rad(femur_rest_heading)
+        theta_2 = -np.deg2rad(tibia_rest_heading)
+        #print('Target unreachable, moving leg as far as possible towards target')
     else:
         beta = cosine_rule_from_sides([femur_len, tibia_len], d)
         alpha = cosine_rule_from_sides([femur_len, d], tibia_len)
-        descent_angle = math.atan2(-d_vec[2], d_vec[1]) - np.deg2rad(j1_rest_heading)
-        theta_1 = descent_angle - alpha
-        theta_2 = math.pi - beta - np.deg2rad(j2_rest_heading)
+        descent_angle = math.atan2(-d_vec[2], d_vec[1])
+        # print(f"Descent angle: {np.rad2deg(descent_angle)} degrees, alpha: {np.rad2deg(alpha)} degrees, beta: {np.rad2deg(beta)} degrees")
+        
+        #print('beta:', np.rad2deg(beta), 'alpha:', np.rad2deg(alpha), 'descent angle:', np.rad2deg(descent_angle))
+        
+        theta_1 = descent_angle - alpha - np.deg2rad(femur_rest_heading)
+        theta_2 = math.pi - beta - np.deg2rad(tibia_rest_heading)
     
     theta_0 = clamp_angle(-100, 100, np.rad2deg(theta_0))
     theta_1 = clamp_angle(-100, 100, np.rad2deg(theta_1))
     theta_2 = clamp_angle(-100, 100, np.rad2deg(theta_2))
-
-    return [theta_0, theta_1, theta_2]
+    
+    
+    return np.array([theta_0, theta_1, theta_2])
 
 
 def clamp_angle(lower, upper, angle):

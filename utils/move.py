@@ -1,18 +1,20 @@
 import math
 import time
-from constants import coxa_len, femur_len, tibia_len
+from hexapod.constants import coxa_len, femur_len, tibia_len
 from numpy import rad2deg
+
+from model.hexapod_leg_joint import HexapodLegJoint
 
 # from model.hexapod import HexapodLegJoint, HexapodLeg
 
 
-# def move_joint_linear(joint : HexapodLegJoint, target_angle, seconds, dt=0.01):
-#     steps = int(seconds / dt)
-#     start_angle = joint.get_angle()
-#     angle_step = (target_angle - start_angle) / steps
-#     for i in range(steps):
-#         joint.set_angle(start_angle + i * angle_step)
-#         time.sleep(dt)
+def move_joint_linear(joint : HexapodLegJoint, target_angle, seconds, dt=0.01):
+    steps = int(seconds / dt)
+    start_angle = joint.get_angle()
+    angle_step = (target_angle - start_angle) / steps
+    for i in range(steps):
+        joint.set_angle(start_angle + i * angle_step)
+        time.sleep(dt)
 
 # def move_joints_linear(joints, target_angles, seconds, dt=0.01):
 #     steps = int(seconds / dt)

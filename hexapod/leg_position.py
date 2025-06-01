@@ -1,6 +1,6 @@
 from enum import Enum
 
-class LegPosition(Enum):
+class LegType(Enum):
     LEFT_BACK = 0
     LEFT_MID = 1
     LEFT_FRONT = 2
