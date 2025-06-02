@@ -21,7 +21,7 @@ class HexapodLegJoint:
     def set_angle(self, angle):
         self.angle = angle
         angle = -angle if self.invert else angle
-        angle = max(-120, min(120, angle))
+        angle = max(-90, min(90, angle))
         adjusted_angle = angle + self.angle_nudge
         #print(f"Setting angle for joint {self.address} to {adjusted_angle} (original: {angle}, nudge: {self.angle_nudge})")
         self.driver.set_angle(self.address, adjusted_angle)

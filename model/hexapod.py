@@ -111,7 +111,7 @@ class Hexapod:
                 # Calculate the angles for this position
                 _angles = leg_ik(pos, leg.joint_rest_headings)  
                 
-                #print('i :', i, '_angles:', _angles, 'current_time:', current_time, 'pos + origin check:', pos + leg_origin)
+                # print('i :', i, 'current_time:', current_time, 'pos + origin check:', pos + leg_origin)
                 # Set angles
                 angles[i, leg_type.value, :] = _angles
                 
@@ -122,10 +122,6 @@ class Hexapod:
                 #print('current_time:', current_time, 'motion_end:', motion_end)
                 if current_time + delta >= motion_end:
                     current_reference_pos = pos + leg_origin
-        
-        for j in range(total_steps):
-            leg = self.get_leg(LegType.LEFT_BACK)
-            #print(f'{j}: {angles[j, LegType.LEFT_BACK.value, :]}')
                     
         self.angles = angles
         
@@ -141,11 +137,11 @@ class Hexapod:
         index = int(time / (self.gait.duration / len(self.angles)))
         angles = self.angles[index]
         
-        ###print('Angles at time {:.2f}: {}'.format(time, angles))
+        #print('Angles at time {:.2f}: {}'.format(time, angles))
         
         # Set angles for each leg
         for i in range(len(self.legs)):
             leg = self.legs[i]
             if leg is not None:
-                # print(f'Setting angles for leg {i} at time {time:.2f}: {angles[i]}')
+                #print(f'Setting angles for leg {i} at time {time:.2f}: {angles[i]}')
                 leg.set_angles(angles[i])

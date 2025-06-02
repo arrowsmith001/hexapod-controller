@@ -36,8 +36,6 @@ def trajectory_as_angles(start, end, steps, rest_headings, control_point=None):
             # Linear interpolation
             target = start + t * (end - start)
         angles = leg_ik(target, rest_headings)
-        
-        #print(f"Step {i}: Target Position: {target}, Angles: {angles}")
         trajectory[i] = angles
     return trajectory
 
@@ -61,28 +59,19 @@ def leg_ik(target_pos, rest_headings):
     # targ_norm_2[0] should always be 0 or very close to 0.
     targ_norm_2 = get_rot_mat_3d(rad2deg(-theta_0)).dot(targ_norm_1)
     
-    #print('targ_norm_2:', targ_norm_2)
-    
     # Calculate the distance from the end of the coxa to the target position
     # Remove coxa offset from hip. Now we are only dealing with the femur and tibia.
     d_vec = targ_norm_2 - np.array([0, coxa_len, coxa_elevation]) 
     d = np.linalg.norm(d_vec)
     
-    #print('d: ', d, 'd_vec:', d_vec)
-
     # If target is unreachable, just move the leg as far as possible pointed at target
     if(d > femur_len + tibia_len):
         theta_1 = math.atan2(-d_vec[2], d_vec[1]) - np.deg2rad(femur_rest_heading)
         theta_2 = -np.deg2rad(tibia_rest_heading)
-        #print('Target unreachable, moving leg as far as possible towards target')
     else:
         beta = cosine_rule_from_sides([femur_len, tibia_len], d)
         alpha = cosine_rule_from_sides([femur_len, d], tibia_len)
         descent_angle = math.atan2(-d_vec[2], d_vec[1])
-        # print(f"Descent angle: {np.rad2deg(descent_angle)} degrees, alpha: {np.rad2deg(alpha)} degrees, beta: {np.rad2deg(beta)} degrees")
-        
-        #print('beta:', np.rad2deg(beta), 'alpha:', np.rad2deg(alpha), 'descent angle:', np.rad2deg(descent_angle))
-        
         theta_1 = descent_angle - alpha - np.deg2rad(femur_rest_heading)
         theta_2 = math.pi - beta - np.deg2rad(tibia_rest_heading)
     

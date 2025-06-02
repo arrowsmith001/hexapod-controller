@@ -31,38 +31,45 @@ right_back_ports = [[1,5], [1,6], [1,7]]
 femur_resting_angle = 14.795
 tibia_resting_angle = 49.168
 
-left_back_leg = HexapodLeg([-39.435, -61.125, -21.970], [-88.479, -110.130, -25.434],
-    HexapodLegJoint(driver, left_back_ports[0],invert=True, angle_nudge=-16), 
+start_x = 130
+start_y = 106
+start_z = -75
+
+mid_start_x = 152
+mid_start_z = -70
+
+left_back_leg = HexapodLeg([-39.435, -61.125, -21.970], [-start_x, -start_y, start_z],
+    HexapodLegJoint(driver, left_back_ports[0],invert=False, angle_nudge=-16), 
     HexapodLegJoint(driver, left_back_ports[1],invert=True, angle_nudge=0), 
     HexapodLegJoint(driver, left_back_ports[2], invert=False, angle_nudge=0),
     [-135, femur_resting_angle, tibia_resting_angle])
     
-left_mid_leg = HexapodLeg([-49.4, 0.8, -21.970], [-118.54,0.846,-25.5],#[-104.337, 0.853, -25.434],
-    HexapodLegJoint(driver, left_mid_ports[0],invert=True, angle_nudge=-6), 
+left_mid_leg = HexapodLeg([-49.4, 0.8, -21.970], [-mid_start_x, 0, mid_start_z],
+    HexapodLegJoint(driver, left_mid_ports[0],invert=False, angle_nudge=0), 
     HexapodLegJoint(driver, left_mid_ports[1],invert=True, angle_nudge=0), 
     HexapodLegJoint(driver, left_mid_ports[2], invert=False, angle_nudge=0),
     [-90, femur_resting_angle, tibia_resting_angle])
 
-left_front_leg = HexapodLeg([-39.435, 61.125, -21.970], [-88.479, 110.130, -25.434],
-    HexapodLegJoint(driver, left_front_ports[0], invert=True ,angle_nudge=-10), 
+left_front_leg = HexapodLeg([-39.435, 61.125, -21.970], [-start_x, start_y, start_z],
+    HexapodLegJoint(driver, left_front_ports[0], invert=False ,angle_nudge=-10), 
     HexapodLegJoint(driver, left_front_ports[1],invert=True,angle_nudge=0), 
     HexapodLegJoint(driver, left_front_ports[2], invert=False, angle_nudge=0),
     [-45, femur_resting_angle, tibia_resting_angle])
 
-right_front_leg = HexapodLeg([39.435, 61.125, -21.970], [88.479, 110.130, -25.434],
-    HexapodLegJoint(driver, right_front_ports[0], invert=True, angle_nudge=12), 
+right_front_leg = HexapodLeg([39.435, 61.125, -21.970], [start_x, start_y, start_z],
+    HexapodLegJoint(driver, right_front_ports[0], invert=False, angle_nudge=12), 
     HexapodLegJoint(driver, right_front_ports[1], invert=False, angle_nudge=0), 
     HexapodLegJoint(driver, right_front_ports[2], invert=True, angle_nudge=0),
     [45, femur_resting_angle, tibia_resting_angle])
 
-right_mid_leg = HexapodLeg([49.4, 0.8, -21.970], [118.54,0.846,-25.5], # [104.337, 0.853, -25.434],
-    HexapodLegJoint(driver, right_mid_ports[0], invert=True, angle_nudge=6), 
+right_mid_leg = HexapodLeg([49.4, 0.8, -21.970], [mid_start_x, 0 ,mid_start_z],
+    HexapodLegJoint(driver, right_mid_ports[0], invert=False, angle_nudge=0), 
     HexapodLegJoint(driver, right_mid_ports[1], invert=False, angle_nudge=0), 
     HexapodLegJoint(driver, right_mid_ports[2], invert=True, angle_nudge=0),
     [90, femur_resting_angle, tibia_resting_angle])
 
-right_back_leg = HexapodLeg([39.435, -61.125, -21.970], [88.479, -110.130, -25.434],
-    HexapodLegJoint(driver, right_back_ports[0], invert=True, angle_nudge=6), 
+right_back_leg = HexapodLeg([39.435, -61.125, -21.970], [start_x, -start_y, start_z],
+    HexapodLegJoint(driver, right_back_ports[0], invert=False, angle_nudge=6), 
     HexapodLegJoint(driver, right_back_ports[1], invert=False, angle_nudge=0), 
     HexapodLegJoint(driver, right_back_ports[2], invert=True, angle_nudge=0),
     [135, femur_resting_angle, tibia_resting_angle])

@@ -8,6 +8,11 @@ class ServoDriver(ABC):
         """Set the angle of the servo at the specified address."""
         pass
     
+    def set_angles(self, addresses: list[list[int]], angles: list[float]):
+        """Set the angles of multiple servos at their respective addresses."""
+        for i in range(len(addresses)):
+            self.set_angle(addresses[i], angles[i])
+            
     @abstractmethod
     def kill(self):
         """Stop all servos."""
