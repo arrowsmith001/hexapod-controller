@@ -3,12 +3,13 @@ import numpy as np
 
 
 class Motion:
-    def __init__(self, vector, start_time, duration, leg: LegType):
+    def __init__(self, vector, start_time, duration, leg: LegType, t_start=0.0, t_end=1.0):
         self.vector = np.array(vector)
         self.start = start_time
         self.duration = duration
         self.leg = leg
-        print('Initialized motion:', self.leg, 'vector:', self.vector, 'start:', self.start, 'duration:', self.duration)
+        self.t_start = t_start
+        self.t_end = t_end
         
     """Check if the motion is active at time t."""
     def is_active(self, t):
@@ -20,21 +21,28 @@ class Motion:
 
 class LinearMotion(Motion):
     
+    def __init__(self, vector, start_time, duration, leg: LegType, t_start=0.0, t_end=1.0):
+        super().__init__(vector, start_time, duration, leg, t_start, t_end)
+    
     """Interpolate linearly at time t."""
     def interp(self, start_pos, t):
-        local_t = np.clip((t - self.start) / self.duration, 0, 1)
+        raw_t = np.clip((t - self.start) / self.duration, 0, 1)
+        local_t = self.t_start + (self.t_end - self.t_start) * raw_t
         return start_pos + local_t * self.vector
         
 
 class BezierMotion(Motion):
     
-    def __init__(self, vector, start_time, duration, leg: LegType, control_point):
-        super().__init__(vector, start_time, duration, leg)
+    def __init__(self, vector, start_time, duration, leg: LegType, control_point, t_start=0.0, t_end=1.0):
+        super().__init__(vector, start_time, duration, leg, t_start, t_end)
         self.control_point = np.array(control_point)
+        
+    
         
     """Interpolate using a Bezier curve with one control point at time t."""
     def interp(self, start_pos, t):
-        local_t = np.clip((t - self.start) / self.duration, 0, 1)
+        raw_t = np.clip((t - self.start) / self.duration, 0, 1)
+        local_t = self.t_start + (self.t_end - self.t_start) * raw_t
         start_pos = np.array(start_pos)
         control_point = start_pos + self.control_point
         end_pos = np.array(start_pos + self.vector)
@@ -55,18 +63,6 @@ class Gait:
         
         if len(motions) != 0:
             self.duration = max(motion.start + motion.duration for motion in motions)
-        
-        # Validate that all motions are non-overlapping for each leg
-        self.validate_motions()
-        
-    """Ensure that no two motions for the same leg overlap in time."""
-    def validate_motions(self):
-        for leg in LegType:
-            leg_motions = self.get_leg_motions_in_time_order(leg)
-            for i in range(len(leg_motions) - 1):
-                if leg_motions[i].start + leg_motions[i].duration > leg_motions[i + 1].start:
-                    raise ValueError(f"Overlapping motions detected for leg {leg}. "
-                                     f"{leg_motions[i]} overlaps with {leg_motions[i + 1]}.")
         
     """Get all motions for a specific leg in time order."""
     def get_leg_motions_in_time_order(self, leg: LegType):

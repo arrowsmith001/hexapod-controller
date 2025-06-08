@@ -84,3 +84,43 @@ wave_gait_2 = Gait([
     LinearMotion([0, -stride_length, 0], dur*6, dur, LegType.RIGHT_MID),
     LinearMotion([0, -stride_length, 0], dur*6, dur, LegType.RIGHT_FRONT),
 ])
+
+dur = 0.75
+stride_length = 45
+stride_control_height = 50
+elevation = -40
+
+# Ripple gait - because there is overlapping motion, we need an initial phase and continuous phase which differ by one motion
+ripple_gait_init = Gait([
+    #BezierMotion([0, stride_length, 0], 0, dur*0.5, LegType.RIGHT_MID, [0, stride_length/2, stride_control_height], t_start=0.5),
+    BezierMotion([0, stride_length, 0], 0, dur, LegType.LEFT_BACK, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur*0.5, dur, LegType.RIGHT_FRONT, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur, dur, LegType.LEFT_MID, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur*1.5, dur, LegType.RIGHT_BACK, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur*2, dur, LegType.LEFT_FRONT, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur*2.5, dur*0.5, LegType.RIGHT_MID, [0, stride_length/2, stride_control_height], t_end=0.5),
+    
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_BACK),
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.RIGHT_FRONT),
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_MID),
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.RIGHT_BACK),
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_FRONT),
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.RIGHT_MID)
+])
+
+ripple_gait = Gait([
+    BezierMotion([0, stride_length, 0], 0, dur*0.5, LegType.RIGHT_MID, [0, stride_length/2, stride_control_height], t_start=0.5),
+    BezierMotion([0, stride_length, 0], 0, dur, LegType.LEFT_BACK, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur*0.5, dur, LegType.RIGHT_FRONT, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur, dur, LegType.LEFT_MID, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur*1.5, dur, LegType.RIGHT_BACK, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur*2, dur, LegType.LEFT_FRONT, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur*2.5, dur*0.5, LegType.RIGHT_MID, [0, stride_length/2, stride_control_height], t_end=0.5),
+    
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_BACK),
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.RIGHT_FRONT),
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_MID),
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.RIGHT_BACK),
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_FRONT),
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.RIGHT_MID)
+])
