@@ -1,16 +1,12 @@
-import numpy as np
 from hexapod.config import *
-from utils.ik import leg_ik
-from hexapod.leg_position import LegType
 import time
-import math
-from utils.move import move_joint_linear
-from hexapod.gaits import wave_gait_1 as wave_gait
+from hexapod.gaits import ripple_gait_init, ripple_gait
 
-#Give the hexapod a gait
-hexapod.set_gait(wave_gait)
+# Add named gaits to the hexapod
+hexapod.add_gait("walk_start", ripple_gait_init)
+hexapod.add_gait("walk_continuous", ripple_gait)
 
-# Generate the leg angles for the gait, granularity specified by delta
+# Generate the leg angles for all added gaits, granularity specified by delta
 hexapod.compute_joint_angles(delta=0.01)
 
 while True:
@@ -18,8 +14,18 @@ while True:
     t = 0
     dt = 0.01
     
-    # # Keep incrementing time by dt, and set the angles for the hexapod at each time
-    while t < hexapod.gait.duration:
+    hexapod.set_active_gait("walk_start")
+    
+    while t < hexapod.get_active_gait().duration:
         hexapod.set_angles_at(t)
         t += dt
         time.sleep(dt)
+        
+    hexapod.set_active_gait("walk_continuous")
+    
+    while True:
+        t = 0
+        while t < hexapod.get_active_gait().duration:
+            hexapod.set_angles_at(t)
+            t += dt
+            time.sleep(dt)
