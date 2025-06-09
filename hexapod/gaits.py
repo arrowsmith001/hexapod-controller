@@ -37,7 +37,7 @@ stand = Gait([
 ])
 
 
-dur = 0.2
+dur = 1
 stride_length = 45
 stride_control_height = 50
 elevation = -40
@@ -85,9 +85,9 @@ wave_gait_2 = Gait([
     LinearMotion([0, -stride_length, 0], dur*6, dur, LegType.RIGHT_FRONT),
 ])
 
-dur = 0.75
+dur = 0.25
 stride_length = 45
-stride_control_height = 50
+stride_control_height = 40
 elevation = -40
 
 # Ripple gait - because there is overlapping motion, we need an initial phase and continuous phase which differ by one motion
@@ -100,12 +100,20 @@ ripple_gait_init = Gait([
     BezierMotion([0, stride_length, 0], dur*2, dur, LegType.LEFT_FRONT, [0, stride_length/2, stride_control_height]),
     BezierMotion([0, stride_length, 0], dur*2.5, dur*0.5, LegType.RIGHT_MID, [0, stride_length/2, stride_control_height], t_end=0.5),
     
-    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_BACK),
-    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.RIGHT_FRONT),
-    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_MID),
-    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.RIGHT_BACK),
-    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_FRONT),
-    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.RIGHT_MID)
+    LinearMotion([0, -stride_length, 0], dur, dur*2, LegType.LEFT_BACK),
+    
+    LinearMotion([0, -stride_length*(1.0/4), 0], 0, dur*0.5, LegType.RIGHT_FRONT),
+    LinearMotion([0, -stride_length*(3.0/4), 0], dur*1.5, dur*1.5, LegType.RIGHT_FRONT),
+    
+    LinearMotion([0, -stride_length*(2.0/4), 0], 0, dur, LegType.LEFT_MID),
+    LinearMotion([0, -stride_length*(2.0/4), 0], dur*2, dur, LegType.LEFT_MID),
+    
+    LinearMotion([0, -stride_length*(3.0/4), 0], 0, dur*1.5, LegType.RIGHT_BACK),
+    LinearMotion([0, -stride_length*(1.0/4), 0], 0, dur*1.5, LegType.RIGHT_BACK),
+    
+    LinearMotion([0, -stride_length, 0], 0, dur*2, LegType.LEFT_FRONT),
+    
+    LinearMotion([0, -stride_length, 0], 0, dur*2.5, LegType.RIGHT_MID)
 ])
 
 ripple_gait = Gait([
@@ -117,10 +125,149 @@ ripple_gait = Gait([
     BezierMotion([0, stride_length, 0], dur*2, dur, LegType.LEFT_FRONT, [0, stride_length/2, stride_control_height]),
     BezierMotion([0, stride_length, 0], dur*2.5, dur*0.5, LegType.RIGHT_MID, [0, stride_length/2, stride_control_height], t_end=0.5),
     
-    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_BACK),
+
+    LinearMotion([0, -stride_length, 0], dur, dur*2, LegType.LEFT_BACK),
+    
+    LinearMotion([0, -stride_length*(1.0/4), 0], 0, dur*0.5, LegType.RIGHT_FRONT),
+    LinearMotion([0, -stride_length*(3.0/4), 0], dur*1.5, dur*1.5, LegType.RIGHT_FRONT),
+    
+    LinearMotion([0, -stride_length*(2.0/4), 0], 0, dur, LegType.LEFT_MID),
+    LinearMotion([0, -stride_length*(2.0/4), 0], dur*2, dur, LegType.LEFT_MID),
+    
+    LinearMotion([0, -stride_length*(3.0/4), 0], 0, dur*1.5, LegType.RIGHT_BACK),
+    LinearMotion([0, -stride_length*(1.0/4), 0], 0, dur*1.5, LegType.RIGHT_BACK),
+    
+    LinearMotion([0, -stride_length, 0], 0, dur*2, LegType.LEFT_FRONT),
+    
+    LinearMotion([0, -stride_length, 0], dur*0.5, dur*2.5, LegType.RIGHT_MID)
+])
+
+dur = 0.2
+stride_length = 30
+stride_control_height = 60
+
+tripod_gait = Gait([
+    BezierMotion([0, stride_length, 0], 0, dur, LegType.LEFT_BACK, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], 0, dur, LegType.LEFT_FRONT, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], 0, dur, LegType.RIGHT_MID, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur, dur, LegType.LEFT_MID, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur, dur, LegType.RIGHT_BACK, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur, dur, LegType.RIGHT_FRONT, [0, stride_length/2, stride_control_height]),
+    
+    LinearMotion([0, -stride_length, 0], dur, dur*2, LegType.LEFT_BACK),
+    LinearMotion([0, -stride_length, 0], dur, dur*2, LegType.LEFT_FRONT),
+    LinearMotion([0, -stride_length, 0], dur, dur*2, LegType.RIGHT_MID),
+    LinearMotion([0, -stride_length, 0], 0, dur, LegType.LEFT_MID),
+    LinearMotion([0, -stride_length, 0], 0, dur, LegType.RIGHT_BACK),
+    LinearMotion([0, -stride_length, 0], 0, dur, LegType.RIGHT_FRONT),
+])
+
+# Any forward gait can be turned into a left or right turn by changing the direction of the leg on one side
+tripod_left_turn = Gait([
+    BezierMotion([0, -stride_length, 0], 0, dur, LegType.LEFT_BACK, [0, -stride_length/2, stride_control_height]),
+    BezierMotion([0, -stride_length, 0], 0, dur, LegType.LEFT_FRONT, [0, -stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], 0, dur, LegType.RIGHT_MID, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, -stride_length, 0], dur, dur, LegType.LEFT_MID, [0, -stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur, dur, LegType.RIGHT_BACK, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur, dur, LegType.RIGHT_FRONT, [0, stride_length/2, stride_control_height]),
+    
+    LinearMotion([0, stride_length, 0], dur, dur*2, LegType.LEFT_BACK),
+    LinearMotion([0, -stride_length, 0], dur, dur*2, LegType.RIGHT_MID),
+    LinearMotion([0, stride_length, 0], dur, dur*2, LegType.LEFT_FRONT),
+    LinearMotion([0, stride_length, 0], 0, dur, LegType.LEFT_MID),
+    LinearMotion([0, -stride_length, 0], 0, dur, LegType.RIGHT_BACK),
+    LinearMotion([0, -stride_length, 0], 0, dur, LegType.RIGHT_FRONT),
+])
+
+tripod_right_turn = Gait([
+    BezierMotion([0, stride_length, 0], 0, dur, LegType.LEFT_BACK, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], 0, dur, LegType.LEFT_FRONT, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, -stride_length, 0], 0, dur, LegType.RIGHT_MID, [0, -stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur, dur, LegType.LEFT_MID, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, -stride_length, 0], dur, dur, LegType.RIGHT_BACK, [0, -stride_length/2, stride_control_height]),
+    BezierMotion([0, -stride_length, 0], dur, dur, LegType.RIGHT_FRONT, [0, -stride_length/2, stride_control_height]),
+    
+    LinearMotion([0, -stride_length, 0], dur, dur*2, LegType.LEFT_BACK),
+    LinearMotion([0, -stride_length, 0], dur, dur*2, LegType.LEFT_MID),
+    LinearMotion([0, -stride_length, 0], dur, dur*2, LegType.LEFT_FRONT),
+    LinearMotion([0, stride_length, 0], 0, dur, LegType.RIGHT_BACK),
+    LinearMotion([0, stride_length, 0], 0, dur, LegType.RIGHT_MID),
+    LinearMotion([0, stride_length, 0], 0, dur, LegType.RIGHT_FRONT),
+])
+
+ripple_left_turn = Gait([
+    BezierMotion([0, -stride_length, 0], 0, dur, LegType.LEFT_BACK, [0, -stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur*0.5, dur, LegType.RIGHT_FRONT, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, -stride_length, 0], dur, dur, LegType.LEFT_MID, [0, -stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur*1.5, dur, LegType.RIGHT_BACK, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, -stride_length, 0], dur*2, dur, LegType.LEFT_FRONT, [0, -stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur*2.5, dur, LegType.RIGHT_MID, [0, stride_length/2, stride_control_height]),
+    
+    LinearMotion([0, stride_length, 0], 0, dur*3, LegType.LEFT_BACK),
     LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.RIGHT_FRONT),
-    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_MID),
+    LinearMotion([0, stride_length, 0], 0, dur*3, LegType.LEFT_MID),
     LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.RIGHT_BACK),
-    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_FRONT),
+    LinearMotion([0, stride_length, 0], 0, dur*3, LegType.LEFT_FRONT),
     LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.RIGHT_MID)
+])
+
+ripple_right_turn = Gait([
+    BezierMotion([0, stride_length, 0], 0, dur, LegType.LEFT_BACK, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, -stride_length, 0], dur*0.5, dur, LegType.RIGHT_FRONT, [0, -stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur, dur, LegType.LEFT_MID, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, -stride_length, 0], dur*1.5, dur, LegType.RIGHT_BACK, [0, -stride_length/2, stride_control_height]),
+    BezierMotion([0, stride_length, 0], dur*2, dur, LegType.LEFT_FRONT, [0, stride_length/2, stride_control_height]),
+    BezierMotion([0, -stride_length, 0], dur*2.5, dur, LegType.RIGHT_MID, [0, -stride_length/2, stride_control_height]),
+    
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_BACK),
+    LinearMotion([0, stride_length, 0], 0, dur*3, LegType.RIGHT_FRONT),
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_MID),
+    LinearMotion([0, stride_length, 0], 0, dur*3, LegType.RIGHT_BACK),
+    LinearMotion([0, -stride_length, 0], 0, dur*3, LegType.LEFT_FRONT),
+    LinearMotion([0, stride_length, 0], 0, dur*3, LegType.RIGHT_MID)
+])
+
+descent = 50
+elevation = 40
+
+dur = 0.25
+across = 15
+
+bob = Gait([
+    LinearMotion([0, 0, -across/2], 0, dur, LegType.LEFT_BACK),
+    LinearMotion([-0, 0, -across/2], 0, dur, LegType.LEFT_MID),
+    LinearMotion([-0, 0, -across/2], 0, dur, LegType.LEFT_FRONT),
+    LinearMotion([-0, 0, -across/2], 0, dur, LegType.RIGHT_BACK),
+    LinearMotion([-0, 0, -across/2], 0, dur, LegType.RIGHT_MID),
+    LinearMotion([-0, 0, -across/2], 0, dur, LegType.RIGHT_FRONT),
+    LinearMotion([-across, 0, 0], dur, dur, LegType.LEFT_BACK),
+    LinearMotion([-across, 0, 0], dur, dur, LegType.LEFT_MID),
+    LinearMotion([-across, 0, 0], dur, dur, LegType.LEFT_FRONT),
+    LinearMotion([-across, 0, 0], dur, dur, LegType.RIGHT_BACK),
+    LinearMotion([-across, 0, 0], dur, dur, LegType.RIGHT_MID),
+    LinearMotion([-across, 0, 0], dur, dur, LegType.RIGHT_FRONT),
+    LinearMotion([0, 0, across], dur*2, dur, LegType.LEFT_BACK),
+    LinearMotion([-0, 0, across], dur*2, dur, LegType.LEFT_MID),
+    LinearMotion([-0, 0, across], dur*2, dur, LegType.LEFT_FRONT),
+    LinearMotion([-0, 0, across], dur*2, dur, LegType.RIGHT_BACK),
+    LinearMotion([-0, 0, across], dur*2, dur, LegType.RIGHT_MID),
+    LinearMotion([-0, 0, across], dur*2, dur, LegType.RIGHT_FRONT),
+    LinearMotion([across*2, 0, 0], dur*3, dur, LegType.LEFT_BACK),
+    LinearMotion([across*2, 0, 0], dur*3, dur, LegType.LEFT_MID),
+    LinearMotion([across*2, 0, 0], dur*3, dur, LegType.LEFT_FRONT),
+    LinearMotion([across*2, 0, 0], dur*3, dur, LegType.RIGHT_BACK),
+    LinearMotion([across*2, 0, 0], dur*3, dur, LegType.RIGHT_MID),
+    LinearMotion([across*2, 0, 0], dur*3, dur, LegType.RIGHT_FRONT),
+    LinearMotion([0, 0, -across/2], dur*4, dur, LegType.LEFT_BACK),
+    LinearMotion([-0, 0, -across/2], dur*4, dur, LegType.LEFT_MID),
+    LinearMotion([-0, 0, -across/2], dur*4, dur, LegType.LEFT_FRONT),
+    LinearMotion([-0, 0, -across/2], dur*4, dur, LegType.RIGHT_BACK),
+    LinearMotion([-0, 0, -across/2], dur*4, dur, LegType.RIGHT_MID),
+    LinearMotion([-0, 0, -across/2], dur*4, dur, LegType.RIGHT_FRONT),
+    LinearMotion([-across, 0, 0], dur*5, dur, LegType.LEFT_BACK),
+    LinearMotion([-across, 0, 0], dur*5, dur, LegType.LEFT_MID),
+    LinearMotion([-across, 0, 0], dur*5, dur, LegType.LEFT_FRONT),
+    LinearMotion([-across, 0, 0], dur*5, dur, LegType.RIGHT_BACK),
+    LinearMotion([-across, 0, 0], dur*5, dur, LegType.RIGHT_MID),
+    LinearMotion([-across, 0, 0], dur*5, dur, LegType.RIGHT_FRONT),
 ])

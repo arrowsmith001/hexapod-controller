@@ -1,14 +1,10 @@
-import math
-from enum import Enum
 import numpy as np
 from hexapod.leg_position import LegType
+from hexapod.motion import Gait
 from model.hexapod_leg import HexapodLeg
-from model.hexapod_leg_joint import HexapodLegJoint
-from hexapod.motion import BezierMotion, Gait, LinearMotion, Motion
-from servo_drivers.abstract import ServoDriver
 from utils.servo import *
 from hexapod.constants import *
-from utils.ik import trajectory_as_angles, leg_ik
+from utils.ik import leg_ik
     
 
 class Hexapod:
@@ -64,17 +60,14 @@ class Hexapod:
             raise ValueError("Leg at position " + position.name + " is not set")
         return leg
     
-    def compute_joint_angles(self, delta=0.5):
+    def compute_joint_angles(self, dt=0.1):
         
         for key, gait in self.gaits.items():
             
             if gait.duration <= 0:
                 raise ValueError("Gait duration must be greater than 0")
             
-            total_steps = int(gait.duration / delta)
-            
-            if not hasattr(self, 'gait'):
-                raise ValueError("Gait not set")
+            total_steps = int(gait.duration / dt)
             
             angles = np.empty([total_steps, len(self.legs), 3], dtype=float)
         
@@ -94,10 +87,12 @@ class Hexapod:
                 current_angles = leg.starting_angles
                 current_reference_pos = leg.get_foot_position_at_angles(current_angles)
                 current_time = 0
+                current_motion_index = None
+                #current_pos = leg.get_foot_position_at_angles(current_angles) - leg_origin
                 
                 #print('Starting angles: ', current_angles, 'for leg:', leg_type.name)
                 #print('Starting reference position:', current_reference_pos, 'for leg:', leg_type.name)
-                #print('leg_ik check:', leg_ik(current_reference_pos - leg_origin, leg.joint_rest_headings), 'for leg: ', leg_type.name)
+                print('leg_ik check:', leg_ik(current_reference_pos - leg_origin, leg.joint_rest_headings), 'for leg: ', leg_type.name)
                 
                 for i in range(total_steps):
                     
@@ -106,13 +101,12 @@ class Hexapod:
                         angles[i, leg_type.value, :] = leg.starting_angles
                         continue
                     
-                    current_time = i * delta
-                    current_motion = gait.get_leg_motion_at_time(leg_type, current_time)
+                    current_time = i * dt
+                    current_motion, current_motion_index = gait.get_leg_motion_at_time(leg_type, current_time)
                     
                     if current_motion is None:
                         # No motion at this time, use the last known angles
                         angles[i, leg_type.value, :] = current_angles
-                        ###print('No motion at time:', current_time, 'using last known angles:', current_angles, 'for leg:', leg_type.name)
                         continue
                     
                     # Calculate target position
@@ -121,16 +115,15 @@ class Hexapod:
                     # Calculate the angles for this position
                     _angles = leg_ik(pos, leg.joint_rest_headings)  
                     
-                    # print('i :', i, 'current_time:', current_time, 'pos + origin check:', pos + leg_origin)
                     # Set angles
                     angles[i, leg_type.value, :] = _angles
                     
                     current_angles = _angles
                     
-                    # If motion is at its end, update reference position
-                    motion_end = current_motion.start + current_motion.duration
-                    #print('current_time:', current_time, 'motion_end:', motion_end)
-                    if current_time + delta >= motion_end:
+                    # If next motion is different, update the reference position
+                    _, next_motion_index = gait.get_leg_motion_at_time(leg_type, current_time + dt)
+                    if next_motion_index != current_motion_index:
+                        print(current_time, ':', 'Switching motion index: ', current_motion_index, 'to', next_motion_index, 'for leg:', leg_type.name)
                         current_reference_pos = pos + leg_origin
                         
             self.angles[key] = angles

@@ -3,7 +3,7 @@ import time
 from hexapod.constants import coxa_len, femur_len, tibia_len
 from numpy import rad2deg
 from model.hexapod_leg_joint import HexapodLegJoint
-from model.hexapod import HexapodLegJoint, HexapodLeg
+from model.hexapod_leg import HexapodLeg
 
 # These are test functions, currently not used in main control program
 

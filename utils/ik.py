@@ -1,4 +1,3 @@
-from utils.move import *
 from utils.servo import *
 from hexapod.constants import *
 import math
@@ -57,7 +56,7 @@ def leg_ik(target_pos, rest_headings):
     # Normalize target position again by removing the theta_0 angle.
     # This allows us to work with the remaining joints in the y-z plane.
     # targ_norm_2[0] should always be 0 or very close to 0.
-    targ_norm_2 = get_rot_mat_3d(rad2deg(-theta_0)).dot(targ_norm_1)
+    targ_norm_2 = get_rot_mat_3d(np.rad2deg(-theta_0)).dot(targ_norm_1)
     
     # Calculate the distance from the end of the coxa to the target position
     # Remove coxa offset from hip. Now we are only dealing with the femur and tibia.

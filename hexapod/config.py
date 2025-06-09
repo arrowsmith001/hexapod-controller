@@ -1,4 +1,6 @@
-from model.hexapod import Hexapod, HexapodLeg, HexapodLegJoint
+from model.hexapod import Hexapod
+from model.hexapod_leg import HexapodLeg
+from model.hexapod_leg_joint import HexapodLegJoint
 from servo_drivers.abstract import ServoDriver
 
 USE_NETWORK_DRIVER = False
@@ -35,7 +37,7 @@ tibia_resting_angle = 49.168
 standing_x = 130
 standing_y = 106
 standing_z = -75
-mid_standing_x = 152
+mid_standing_x = 115
 
 # Crouching position
 crouching_x = 75
@@ -43,10 +45,10 @@ crouching_y = 93
 crouching_z = -25
 mid_crouching_x = 90
 
-x = crouching_x
-y = crouching_y
-z = crouching_z
-mid_x = mid_crouching_x
+x = standing_x
+y = standing_y
+z = standing_z
+mid_x = mid_standing_x
 
 left_back_leg = HexapodLeg([-39.435, -61.125, -21.970], [-x, -y, z],
     HexapodLegJoint(driver, left_back_ports[0],invert=False, angle_nudge=-4), 
